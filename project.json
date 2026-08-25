@@ -1,0 +1,15 @@
+{
+  "langrev": "1",
+  "warnings": [ "no-unused" ],
+  "version": "0.1.0",
+  "sources": [ "src/**" ],
+  "build-dir": "build",
+  "output": "build",
+  "targets": {
+    "LublinSQL": {
+      "type": "executable"
+    }
+  },
+  "cpu": "generic",
+  "opt": "Os"
+}
