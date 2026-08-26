@@ -26,8 +26,6 @@ Table of supported SQL dialects:
 
 LublinSQL is not intended to be "SQL with different keywords."
 
-It is a data programming language.
-
 The goal is to provide a higher-level programming model for relational data while retaining the power and interoperability of SQL.
 
 ## Contributing
