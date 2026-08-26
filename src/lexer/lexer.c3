@@ -16,8 +16,22 @@ fn Tokens lex(String input) {
 
         if (is_whitespace(c)) continue;
 
-        if (is_number(c) || (is_dot(c) && i + 1 < len && is_number(input[i + 1]))) {
+        if (ascii::is_digit(c) || (is_dot(c) && i + 1 < len && ascii::is_digit(input[i + 1]))) {
             Token token = lex_number(input, &i);
+            tokens.push(token);
+            i--;
+            continue;
+        }
+
+        if (ascii::is_alpha(c) || c == '_' || c == '@') {
+            Token token = lex_identifier(input, &i);
+            tokens.push(token);
+            i--;
+            continue;
+        }
+
+        if (c == '"' || c == '\'') {
+            Token token = lex_string(input, &i);
             tokens.push(token);
             i--;
             continue;
@@ -34,7 +48,7 @@ fn Tokens lex(String input) {
 
 fn void read_digits(String input, int* pos) {
     int len = (int)input.len;
-    while (*pos < len && is_number(input[*pos])) {
+    while (*pos < len && ascii::is_digit(input[*pos])) {
         (*pos)++;
     }
 }
@@ -53,7 +67,7 @@ fn Token lex_number(String input, int* pos) {
 
     if (*pos < len && is_dot(input[*pos])) {
         int dot_pos = *pos + 1;
-        if (dot_pos < len && is_number(input[dot_pos])) {
+        if (dot_pos < len && ascii::is_digit(input[dot_pos])) {
             (*pos)++;
             read_digits(input, pos);
         }
@@ -62,9 +76,31 @@ fn Token lex_number(String input, int* pos) {
     return make_token(input[start : *pos - start], TokenType.NUMBER);
 }
 
-fn Token make_token(String value, TokenType type) {
-    Token token;
-    token.value = value;
-    token.type = type;
-    return token;
+fn Token lex_identifier(String input, int* pos) {
+    int start = *pos;
+    int len = (int)input.len;
+
+    while (*pos < len && (ascii::is_digit(input[*pos]) || ascii::is_alpha(input[*pos]) || input[*pos] == '_' || input[*pos] == '@')) {
+        (*pos)++;
+    }
+
+    return make_token(input[start : *pos - start], TokenType.IDENTIFIER);
+}
+
+fn Token lex_string(String input, int* pos) {
+    int start = *pos;
+    int len = (int)input.len;
+    char quote = input[*pos];
+
+    (*pos)++;
+
+    while (*pos < len && input[*pos] != quote) {
+        (*pos)++;
+    }
+
+    if (*pos < len) {
+        (*pos)++;
+    }
+
+    return make_token(input[start : *pos - start], TokenType.STRING);
 }
