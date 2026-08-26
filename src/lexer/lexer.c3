@@ -14,9 +14,16 @@ fn Tokens lex(String input) {
     for (; i < len; i++) {
         char c = input[i];
 
-        if (is_whitespace(c)) continue;
+        if (ascii::is_blank(c) || c == '\n' || c == ';') continue;
 
-        if (ascii::is_digit(c) || (is_dot(c) && i + 1 < len && ascii::is_digit(input[i + 1]))) {
+        if (c == '/' && i + 1 < len && input[i + 1] == '/') {
+            while (i < len && input[i] != '\n') {
+                i++;
+            }
+            continue;
+        }
+
+        if (ascii::is_digit(c) || (c == '.' && i + 1 < len && ascii::is_digit(input[i + 1]))) {
             Token token = lex_number(input, &i);
             tokens.push(token);
             i--;
@@ -34,6 +41,31 @@ fn Tokens lex(String input) {
             Token token = lex_string(input, &i);
             tokens.push(token);
             i--;
+            continue;
+        }
+
+        if (c == '+' || c == '-' || c == '*' || c == '/') {
+            Token token;
+            token.value = string::format(mem, "%c", c);
+            token.type = TokenType.OPERATOR;
+            tokens.push(token);
+            continue;
+        }
+
+        if (c == '~' && i + 1 < len && input[i + 1] == '=') {
+            Token token;
+            token.value = "~=";
+            token.type = TokenType.OPERATOR;
+            tokens.push(token);
+            i++;
+            continue;
+        }
+
+        if (c == ':' || c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']' || c == ',') {
+            Token token;
+            token.value = string::format(mem, "%c", c);
+            token.type = TokenType.DELIMITER;
+            tokens.push(token);
             continue;
         }
 
@@ -57,7 +89,7 @@ fn Token lex_number(String input, int* pos) {
     int start = *pos;
     int len = (int)input.len;
 
-    if (*pos < len && is_dot(input[*pos])) {
+    if (*pos < len && input[*pos] == '.') {
         (*pos)++;
         read_digits(input, pos);
         return make_token(input[start : *pos - start], TokenType.NUMBER);
@@ -65,7 +97,7 @@ fn Token lex_number(String input, int* pos) {
 
     read_digits(input, pos);
 
-    if (*pos < len && is_dot(input[*pos])) {
+    if (*pos < len && input[*pos] == '.') {
         int dot_pos = *pos + 1;
         if (dot_pos < len && ascii::is_digit(input[dot_pos])) {
             (*pos)++;

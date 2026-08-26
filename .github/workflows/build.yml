@@ -16,7 +16,7 @@ jobs:
         run: |
           curl --proto '=https' --tlsv1.2 -sSfL https://github.com/c3lang/c3c/releases/latest/download/c3-linux.tar.gz -o c3.tar.gz
           tar -xzf c3.tar.gz
-          sudo mv c3c /usr/local/bin/c3c
+          sudo mv c3/c3c /usr/local/bin/c3c
 
       - name: Build
         run: c3c build
