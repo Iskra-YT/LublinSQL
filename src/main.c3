@@ -1,6 +1,7 @@
 module lublinsql;
 
 import lublinsql::lexer;
+import lublinsql::parser;
 import std::io;
 
 fn int main(String[] args) {
@@ -17,12 +18,16 @@ fn int main(String[] args) {
 
     defer input.free(mem);
 
-	lexer::Tokens tokens = lexer::lex(input);
+    lexer::Tokens tokens = lexer::lex(input);
     defer tokens.free();
 
-    foreach (lexer::Token token : tokens) {
-        io::printfn(token.repr());
+    Node* ast = parser::parse(tokens);
+    if (!ast) {
+        io::printn("Error: failed to parse expression");
+        return 1;
     }
+
+    io::printn(ast.repr());
 
     return 0;
 }
