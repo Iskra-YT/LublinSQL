@@ -6,8 +6,8 @@ enum TokenType : int {
     KEYWORD,
     OPERATOR,
     DELIMITER,
-    LITERAL,
-    ATTRIBUTER
+    NUMBER,
+    STRING
 }
 
 struct Token {
