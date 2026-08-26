@@ -1,0 +1,22 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install C3
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://github.com/c3lang/c3c/releases/latest/download/c3-linux-x64.tar.gz -o c3.tar.gz
+          tar -xzf c3.tar.gz
+          sudo mv c3c /usr/local/bin/c3c
+
+      - name: Build
+        run: c3c build
