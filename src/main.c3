@@ -21,13 +21,12 @@ fn int main(String[] args) {
     lexer::Tokens tokens = lexer::lex(input);
     defer tokens.free();
 
-    Node* ast = parser::parse(tokens);
-    if (!ast) {
-        io::printn("Error: failed to parse expression");
-        return 1;
-    }
+    Parser p = parser::make_parser(tokens);
+    Node ast = p.parse();
+    if (!ast) return 1;
 
-    io::printn(ast.repr());
+    parser::repr_nodes(ast);
+    io::print("\n");
 
     return 0;
 }

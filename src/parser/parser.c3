@@ -1,146 +1,121 @@
 module lublinsql::parser;
 
+import std::collections::list;
 import lublinsql::lexer;
 
 struct Parser {
-    lexer::Tokens tokens;
-    int pos;
+    Tokens tokens;
+    long offset;
 }
 
-fn Parser make_parser(lexer::Tokens tokens) {
-    Parser p;
-    p.tokens = tokens;
-    p.pos = 0;
-    return p;
+fn Token* Parser.getCurrent(Parser* this) {
+    if (this.tokens.size <= this.offset) return null;
+    return &this.tokens[this.offset];
 }
 
-fn lexer::Token* Parser.peek(Parser* this) {
-    if (this.pos >= this.tokens.len()) return null;
-    return &this.tokens[this.pos];
+fn bool Parser.next(Parser* this) {
+    if (this.tokens.size <= this.offset) return false;
+
+    this.offset++;
+    return true;
 }
 
-fn lexer::Token Parser.advance(Parser* this) {
-    lexer::Token t = this.tokens[this.pos];
-    this.pos++;
-    return t;
+fn Parser make_parser(Tokens tokens) {
+    Parser p = {
+        .offset = 0,
+        .tokens = tokens
+    };
+
+    return p; 
 }
 
-fn bool Parser.match(Parser* this, String value) {
-    lexer::Token* t = this.peek();
-    if (t && t.value == value && t.type == lexer::TokenType.OPERATOR) {
-        this.advance();
-        return true;
-    }
-    return false;
+fn int get_precedence(String op) {
+    if (op == "+" || op == "-") return 1;
+    if (op == "*" || op == "/") return 2;
+    return 0;
 }
 
-fn Node* Parser.parse_factor(Parser* this) {
-    lexer::Token* t = this.peek();
-    if (!t) return null;
+fn Node Parser.parse_primary(Parser* this) {
+    Token* token = this.getCurrent();
+    if (!token) return (Node)null;
 
-    if (t.type == lexer::TokenType.NUMBER) {
-        this.advance();
-        double val = t.value.to_double() ?? 0;
-        return make_number_node(val);
-    }
-
-    if (t.value == "(" && t.type == lexer::TokenType.DELIMITER) {
-        this.advance();
-        Node* expr = this.parse_expression();
-        if (!expr) return null;
-        lexer::Token* close = this.peek();
-        if (close && close.value == ")" && close.type == lexer::TokenType.DELIMITER) {
-            this.advance();
-            return expr;
-        }
-        expr.free();
-        return null;
+    if (token.type == TokenType.NUMBER) {
+        NumberNode* node = mem::malloc(NumberNode::size);
+        node.type = NodeType.NUMBER_NODE;
+        node.value = token.value.to_double() ?? 0;
+        this.next();
+        return (Node)node;
     }
 
-    return null;
+    if (token.type == TokenType.DELIMITER && token.value == "(") {
+        this.next();
+        Node expr = this.parse_expression();
+        if (this.getCurrent() && this.getCurrent().value == ")") {
+            this.next();
+        }
+        return expr;
+    }
+
+    return (Node)null;
 }
 
-fn Node* Parser.parse_term(Parser* this) {
-    Node* left = this.parse_factor();
-    if (!left) return null;
+fn Node Parser.parse_binary(Parser* this, int min_prec) {
+    Node left = this.parse_primary();
+    if (!left) return (Node)null;
 
-    while (this.peek() && (this.peek().value == "*" || this.peek().value == "/")) {
-        lexer::Token op = this.advance();
-        Node* right = this.parse_factor();
-        if (!right) {
-            left.free();
-            return null;
-        }
-        OpType op_type;
-        if (op.value == "*") {
-            op_type = OpType.MUL;
-        } else {
-            op_type = OpType.DIV;
-        }
-        left = make_binop_node(op_type, left, right);
+    while (true) {
+        Token* token = this.getCurrent();
+        if (!token || token.type != TokenType.OPERATOR) break;
+
+        int prec = get_precedence(token.value);
+        if (prec < min_prec) break;
+
+        String op = token.value;
+        this.next();
+
+        Node right = this.parse_binary(prec + 1);
+        if (!right) break;
+
+        BinaryNode* node = mem::malloc(BinaryNode::size);
+        node.type = NodeType.BINARY_NODE;
+        node.left = left;
+        node.op = op;
+        node.right = right;
+        left = (Node)node;
     }
 
     return left;
 }
 
-fn Node* Parser.parse_expression(Parser* this) {
-    Node* left = this.parse_term();
-    if (!left) return null;
-
-    while (this.peek() && (this.peek().value == "+" || this.peek().value == "-")) {
-        lexer::Token op = this.advance();
-        Node* right = this.parse_term();
-        if (!right) {
-            left.free();
-            return null;
-        }
-        OpType op_type;
-        if (op.value == "+") {
-            op_type = OpType.ADD;
-        } else {
-            op_type = OpType.SUB;
-        }
-        left = make_binop_node(op_type, left, right);
-    }
-
-    return left;
+fn Node Parser.parse_expression(Parser* this) {
+    return this.parse_binary(0);
 }
 
-fn Node* Parser.parse_statement(Parser* this) {
-    lexer::Token* t = this.peek();
-    if (!t) return null;
+fn Node Parser.parse_statement(Parser* this) {
+    Node expr = this.parse_expression();
+    if (!expr) return (Node)null;
 
-    if (t.type == lexer::TokenType.KEYWORD && t.value == "sql") {
-        return parse_sql_statement(this);
-    }
-
-    return this.parse_expression();
+    this.next();
+    return expr;
 }
 
-fn Node* parse(lexer::Tokens tokens) {
-    Parser p = make_parser(tokens);
-    Node* program = make_program_node();
+fn Node Parser.parse(Parser* this) {
+    List{Node} nodes;
+    nodes.init(mem);
 
-    while (p.peek()) {
-        Node* stmt = p.parse_statement();
-        if (stmt) {
-            program.nodes.push(stmt);
-        } else {
-            break;
+    while (this.getCurrent()) {
+        Node statement = this.parse_statement();
+        if (!statement) {
+            this.next();
+            continue;
         }
+
+        nodes.push(statement);
     }
 
-    if (program.nodes.len() == 0) {
-        program.free();
-        return null;
-    }
+    ProgramNode* programNode = mem::malloc(ProgramNode::size);
+    programNode.statements = nodes;
+    programNode.type = NodeType.PROGRAM_NODE;
 
-    if (program.nodes.len() == 1) {
-        Node* single = program.nodes[0];
-        program.nodes.free();
-        free(program);
-        return single;
-    }
-
-    return program;
+    return (Node)programNode;
 }
