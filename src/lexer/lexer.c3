@@ -4,6 +4,8 @@ import std::collections::list;
 
 alias Tokens = List{Token};
 
+const String[] KEYWORDS = { "sql" };
+
 fn Tokens lex(String input) {
     Tokens tokens;
     tokens.init(mem);
@@ -116,7 +118,13 @@ fn Token lex_identifier(String input, int* pos) {
         (*pos)++;
     }
 
-    return make_token(input[start : *pos - start], TokenType.IDENTIFIER);
+    String value = input[start : *pos - start];
+    for (int i = 0; i < KEYWORDS.len; i++) {
+        if (value == KEYWORDS[i]) {
+            return make_token(value, TokenType.KEYWORD);
+        }
+    }
+    return make_token(value, TokenType.IDENTIFIER);
 }
 
 fn Token lex_string(String input, int* pos) {

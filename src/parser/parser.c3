@@ -106,8 +106,41 @@ fn Node* Parser.parse_expression(Parser* this) {
     return left;
 }
 
+fn Node* Parser.parse_statement(Parser* this) {
+    lexer::Token* t = this.peek();
+    if (!t) return null;
+
+    if (t.type == lexer::TokenType.KEYWORD && t.value == "sql") {
+        return parse_sql_statement(this);
+    }
+
+    return this.parse_expression();
+}
+
 fn Node* parse(lexer::Tokens tokens) {
     Parser p = make_parser(tokens);
-    Node* result = p.parse_expression();
-    return result;
+    Node* program = make_program_node();
+
+    while (p.peek()) {
+        Node* stmt = p.parse_statement();
+        if (stmt) {
+            program.nodes.push(stmt);
+        } else {
+            break;
+        }
+    }
+
+    if (program.nodes.len() == 0) {
+        program.free();
+        return null;
+    }
+
+    if (program.nodes.len() == 1) {
+        Node* single = program.nodes[0];
+        program.nodes.free();
+        free(program);
+        return single;
+    }
+
+    return program;
 }
