@@ -56,6 +56,14 @@ fn Node Parser.parse_primary(Parser* this) {
         return expr;
     }
 
+    if (token.type == TokenType.IDENTIFIER) {
+        IdentifierNode* node = mem::malloc(IdentifierNode::size);
+        node.type = NodeType.IDENTIFIER_NODE;
+        node.value = token.value;
+        this.next();
+        return (Node)node;
+    }
+
     return (Node)null;
 }
 
@@ -92,6 +100,11 @@ fn Node Parser.parse_expression(Parser* this) {
 }
 
 fn Node Parser.parse_statement(Parser* this) {
+    if (this.getCurrent().matches("sql", TokenType.KEYWORD)) {
+        Node sql = this.parse_sql();
+        return sql;
+    }
+
     Node expr = this.parse_expression();
     if (!expr) return (Node)null;
 

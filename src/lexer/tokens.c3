@@ -25,3 +25,7 @@ fn Token make_token(String value, TokenType type) {
     token.type = type;
     return token;
 }
+
+fn bool Token.matches(Token* this, String value, TokenType type) {
+    return this.type == type && this.value == value;
+}
