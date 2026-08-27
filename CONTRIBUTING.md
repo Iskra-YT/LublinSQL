@@ -1,7 +1,11 @@
 # Contributing to LublinSQL
 
-This file documents the coding conventions for the LublinSQL codebase. GitHub
-displays it automatically and it applies to **all** new and modified code —
+Thank you for considering contributing. This file explains how to report
+issues, submit changes, and what coding conventions the codebase follows.
+GitHub displays it automatically. Please read the [README](README.md) first
+for an overview of the project.
+
+All contributions are subject to the code style defined in this file —
 inconsistent code is a bug.
 
 > [!WARNING]
@@ -11,6 +15,38 @@ We use C3 as an *implementation vehicle* only. It is not a model for how
 LublinSQL source code should look. Do not "fix" or "correct" code in this
 repository so that it matches the C3 standard guide — doing so is a **regression**
 and will be rejected in review.
+
+---
+
+## Reporting issues
+
+- Before opening a new issue, search the existing issues to avoid duplicates.
+- **Bugs**: describe exactly what happened, include the smallest input that
+  triggers it, the expected output, and any error message. State the build
+  toolchain / version you used.
+- **Feature requests**: describe the use case you want to enable and why the
+  current facilities are not enough — not a prescribed solution.
+- One issue per problem. Keep the report factual; do not include personal
+  opinions or unrelated complaints.
+
+---
+
+## Submitting a pull request
+
+- Fork the repository and create a branch from `main` for your work.
+- Keep PRs **small and focused**: one concern per pull request.
+- Describe what the change does and how you verified it.
+- All code in the PR must follow the code style in this document.
+- Before submitting, rebase on the latest `main` and make sure the change is
+  limited to the files it needs to touch.
+- The project's maintainers will review; be ready to address feedback.
+
+---
+
+## Code style
+
+The rest of this file defines the coding conventions for the LublinSQL
+codebase. It applies to **all** new and modified code in every pull request.
 
 ---
 
@@ -49,7 +85,7 @@ what we are **not** following.
 
 - Module names are `snake_case` and namespaced under a project prefix:
   `lublinsql::lexer`, `lublinsql::parser`, `lublinsql::position`,
-  `lublinsql::tests`.
+  `lublinsql::error`.
 - The directory layout under `src/` mirrors the module namespace:
 
   | Module | File |
@@ -61,14 +97,11 @@ what we are **not** following.
   One module per "concern directory"; a single module should not be split
   across unrelated paths, and unrelated modules should not be squashed into a
   single file.
-- **Test files** live under `tests/` and follow the pattern
-  `<module>_tests.c3` — e.g. `tests/lexer_tests.c3` tests the
-  `lublinsql::lexer` module. They must never be placed under `src/`.
 - Imports are grouped logically and placed at the top of the module, after
   the `module` declaration. Third-party / std imports come before local
   imports in their own paragraph:
 
-  ```c
+  ```c3
   module lublinsql::lexer;
 
   import std::collections::list;
@@ -90,7 +123,7 @@ what we are **not** following.
 | Constants | `UPPER_SNAKE_CASE` | `KEYWORDS` |
 | Enum members | `UPPER_SNAKE_CASE` | `TokenType.NUMBER`, `NodeType.SQL_NODE` |
 | Modules | `snake_case` | `lublinsql::lexer` |
-| File names | `snake_case` | `lexer.c3`, `tokens.c3`, `lexer_tests.c3` |
+| File names | `snake_case` | `lexer.c3`, `tokens.c3`, `error.c3` |
 
 ### Rules
 
@@ -115,7 +148,7 @@ what we are **not** following.
 
 - Constant declarations use `UPPER_SNAKE_CASE`:
 
-  ```c
+  ```c3
   const String[] KEYWORDS = { "sql" };
   ```
 
@@ -123,7 +156,7 @@ what we are **not** following.
   requires disambiguation (`TokenType.NUMBER_NODE` only where needed; prefer
   `TokenType.NUMBER` when unambiguous):
 
-  ```c
+  ```c3
   enum TokenType : int {
       UNKNOWN,
       IDENTIFIER,
@@ -163,7 +196,7 @@ what we are **not** following.
 - A single trailing statement after a control keyword may be placed on the
   same line without braces:
 
-  ```c
+  ```c3
   if (value == KEYWORDS[i]) return makeToken(value, TokenType.KEYWORD, start, end);
   if (this.getCurrent() != null) this.next();
   ```
@@ -176,7 +209,7 @@ what we are **not** following.
 - Struct initializers use designated `.field = value` syntax and wrap entries
   one per line:
 
-  ```c
+  ```c3
   Position pos = {
       .index = -1,
       .column = 0,
@@ -208,34 +241,13 @@ what we are **not** following.
 - Single-line comments use `//`. Block comments are reserved for license
   headers.
 - Do **not** leave TODO/FIXME markers in committed code — open an issue
-  instead. Inline Polish comments are not allowed in committed files.
-- Test code gets the same discipline as production code: no commented-out
-  assertions, no dead blocks.
-
----
-
-## Tests
-
-- Tests live in `tests/` and mirror their module: `tests/lexer_tests.c3`.
-- Every test function follows the `test_<scenario>` naming convention used by
-  the test runner:
-
-  ```c
-  fn void test_numbers() @test { ... }
-  fn void test_identifiers_and_keywords() @test { ... }
-  ```
-
-  This is the one place free functions are allowed to be `snake_case`.
-  Production code never gets this exception.
-- Helpers shared by several tests follow `camelCase` like any other function.
-- Test functions must be self-contained: create input, run, assert via
-  `test::eq` / `assert_token`.
+  instead.
 
 ---
 
 ## Example
 
-```c
+```c3
 fn Token lexNumber(String input, int* pos, Position start) {
     int begin = *pos;
     int len = (int)input.len;
@@ -258,4 +270,4 @@ fn Token lexNumber(String input, int* pos, Position start) {
   `snake_case`.
 - **Nothing** was renamed to match the C3 default style.
 - 4-space indentation, no tabs, braces on the same line.
-- Files under `src/` mirror module namespaces; tests under `tests/`.
+- Files under `src/` mirror module namespaces.
