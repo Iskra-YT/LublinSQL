@@ -1,10 +1,29 @@
 module lublinsql::lexer;
 
 import std::collections::list;
+import lublinsql::position;
 
 alias Tokens = List{Token};
 
 const String[] KEYWORDS = { "sql" };
+
+fn Position step(Position p, char c) {
+    p.index++;
+    if (c == '\n') {
+        p.column = 0;
+        p.line++;
+    } else {
+        p.column++;
+    }
+    return p;
+}
+
+fn Position skip(Position p, String input, int from, int to) {
+    for (int k = from; k < to; k++) {
+        p = step(p, input[k]);
+    }
+    return p;
+}
 
 fn Tokens lex(String input) {
     Tokens tokens;
@@ -12,123 +31,141 @@ fn Tokens lex(String input) {
 
     int i = 0;
     int len = (int)input.len;
+    Position pos = {
+        .index = -1,
+        .column = 0,
+        .line = 1
+    };
 
-    for (; i < len; i++) {
+    while (i < len) {
+        int from = i;
+        Position start = step(pos, input[i]);
         char c = input[i];
 
-        if (ascii::is_blank(c) || c == '\n' || c == ';') continue;
+        if (c == '\n' || ascii::is_blank(c)) {
+            pos = start;
+            i++;
+            continue;
+        }
 
         if (c == '/' && i + 1 < len && input[i + 1] == '/') {
             while (i < len && input[i] != '\n') {
                 i++;
             }
+            pos = skip(pos, input, from, i);
             continue;
         }
 
         if (ascii::is_digit(c) || (c == '.' && i + 1 < len && ascii::is_digit(input[i + 1]))) {
-            Token token = lex_number(input, &i);
+            Token token = lexNumber(input, &i, start);
             tokens.push(token);
-            i--;
+            pos = skip(pos, input, from, i);
             continue;
         }
 
         if (ascii::is_alpha(c) || c == '_' || c == '@') {
-            Token token = lex_identifier(input, &i);
+            Token token = lexIdentifier(input, &i, start);
             tokens.push(token);
-            i--;
+            pos = skip(pos, input, from, i);
             continue;
         }
 
         if (c == '"' || c == '\'') {
-            Token token = lex_string(input, &i);
+            Token token = lexString(input, &i, start);
             tokens.push(token);
-            i--;
+            pos = skip(pos, input, from, i);
             continue;
         }
 
         if (c == '+' || c == '-' || c == '*' || c == '/') {
-            Token token;
-            token.value = string::format(mem, "%c", c);
-            token.type = TokenType.OPERATOR;
+            i++;
+            Position end = skip(start, input, from, i);
+            Token token = makeToken(input[from : i - from], TokenType.OPERATOR, start, end);
             tokens.push(token);
+            pos = skip(pos, input, from, i);
             continue;
         }
 
         if (c == '~' && i + 1 < len && input[i + 1] == '=') {
-            Token token;
-            token.value = "~=";
-            token.type = TokenType.OPERATOR;
+            i += 2;
+            Position end = skip(start, input, from, i);
+            Token token = makeToken("~=", TokenType.OPERATOR, start, end);
             tokens.push(token);
+            pos = skip(pos, input, from, i);
+            continue;
+        }
+
+        if (c == ':' || c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']' || c == ',' || c == ';') {
             i++;
-            continue;
-        }
-
-        if (c == ':' || c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']' || c == ',') {
-            Token token;
-            token.value = string::format(mem, "%c", c);
-            token.type = TokenType.DELIMITER;
+            Position end = skip(start, input, from, i);
+            Token token = makeToken(input[from : i - from], TokenType.DELIMITER, start, end);
             tokens.push(token);
+            pos = skip(pos, input, from, i);
             continue;
         }
 
-        Token token;
-        token.value = string::format(mem, "%c", c);
-        token.type = TokenType.UNKNOWN;
+        i++;
+        Position end = skip(start, input, from, i);
+        Token token = makeToken(input[from : i - from], TokenType.UNKNOWN, start, end);
         tokens.push(token);
+        pos = skip(pos, input, from, i);
     }
 
     return tokens;
 }
 
-fn void read_digits(String input, int* pos) {
+fn void readDigits(String input, int* pos) {
     int len = (int)input.len;
     while (*pos < len && ascii::is_digit(input[*pos])) {
         (*pos)++;
     }
 }
 
-fn Token lex_number(String input, int* pos) {
-    int start = *pos;
+fn Token lexNumber(String input, int* pos, Position start) {
+    int begin = *pos;
     int len = (int)input.len;
 
     if (*pos < len && input[*pos] == '.') {
         (*pos)++;
-        read_digits(input, pos);
-        return make_token(input[start : *pos - start], TokenType.NUMBER);
+        readDigits(input, pos);
+        Position end = skip(start, input, begin, *pos);
+        return makeToken(input[begin : *pos - begin], TokenType.NUMBER, start, end);
     }
 
-    read_digits(input, pos);
+    readDigits(input, pos);
 
     if (*pos < len && input[*pos] == '.') {
         int dot_pos = *pos + 1;
         if (dot_pos < len && ascii::is_digit(input[dot_pos])) {
             (*pos)++;
-            read_digits(input, pos);
+            readDigits(input, pos);
         }
     }
 
-    return make_token(input[start : *pos - start], TokenType.NUMBER);
+    Position end = skip(start, input, begin, *pos);
+    return makeToken(input[begin : *pos - begin], TokenType.NUMBER, start, end);
 }
 
-fn Token lex_identifier(String input, int* pos) {
-    int start = *pos;
+fn Token lexIdentifier(String input, int* pos, Position start) {
+    int begin = *pos;
     int len = (int)input.len;
 
     while (*pos < len && (ascii::is_digit(input[*pos]) || ascii::is_alpha(input[*pos]) || input[*pos] == '_' || input[*pos] == '@')) {
         (*pos)++;
     }
 
-    String value = input[start : *pos - start];
+    String value = input[begin : *pos - begin];
+    Position end = skip(start, input, begin, *pos);
     for (int i = 0; i < KEYWORDS.len; i++) {
         if (value == KEYWORDS[i]) {
-            return make_token(value, TokenType.KEYWORD);
+            return makeToken(value, TokenType.KEYWORD, start, end);
         }
     }
-    return make_token(value, TokenType.IDENTIFIER);
+    return makeToken(value, TokenType.IDENTIFIER, start, end);
 }
 
-fn Token lex_string(String input, int* pos) {
-    int start = *pos;
+fn Token lexString(String input, int* pos, Position start) {
+    int begin = *pos;
     int len = (int)input.len;
     char quote = input[*pos];
 
@@ -142,5 +179,6 @@ fn Token lex_string(String input, int* pos) {
         (*pos)++;
     }
 
-    return make_token(input[start : *pos - start], TokenType.STRING);
+    Position end = skip(start, input, begin, *pos);
+    return makeToken(input[begin : *pos - begin], TokenType.STRING, start, end);
 }

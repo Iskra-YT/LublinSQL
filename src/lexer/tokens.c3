@@ -1,5 +1,7 @@
 module lublinsql::lexer;
 
+import lublinsql::position;
+
 enum TokenType : int {
     UNKNOWN,
     IDENTIFIER,
@@ -13,16 +15,22 @@ enum TokenType : int {
 struct Token {
     String value;
     TokenType type;
+    PositionVector position;
 }
 
 fn String Token.repr(Token* this) {
     return string::format(mem, "[%s: %s]", this.type, this.value);
 }
 
-fn Token make_token(String value, TokenType type) {
+fn Token makeToken(String value, TokenType type, Position start, Position end) {
     Token token;
     token.value = value;
     token.type = type;
+    token.position = {
+        .start = start,
+        .end = end
+    };
+    
     return token;
 }
 

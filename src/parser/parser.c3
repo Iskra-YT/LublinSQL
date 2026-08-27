@@ -100,8 +100,11 @@ fn Node Parser.parse_expression(Parser* this) {
 }
 
 fn Node Parser.parse_statement(Parser* this) {
-    if (this.getCurrent().matches("sql", TokenType.KEYWORD)) {
+    Token* current = this.getCurrent();
+    if (current && current.matches("sql", TokenType.KEYWORD)) {
         Node sql = this.parse_sql();
+        
+        if (this.getCurrent() && this.getCurrent().matches(";", TokenType.DELIMITER)) this.next();
         return sql;
     }
 
@@ -109,6 +112,8 @@ fn Node Parser.parse_statement(Parser* this) {
     if (!expr) return (Node)null;
 
     this.next();
+    if (this.getCurrent() && this.getCurrent().matches(";", TokenType.DELIMITER)) this.next();
+
     return expr;
 }
 

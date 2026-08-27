@@ -4,6 +4,6 @@ type Users {
 }
 
 @noinit
-table users: Users // Get table users
+table users: Users
 
 print(users where name ~= "*Ania*")
