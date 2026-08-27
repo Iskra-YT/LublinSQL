@@ -1,29 +1,40 @@
 module lublinsql::parser;
 
 import lublinsql::lexer;
+import lublinsql::position;
 
 import std::io;
 
-fn Node Parser.parse_sql(Parser* this) {
-    if (!this.getCurrent() || !this.getCurrent().matches("sql", TokenType.KEYWORD)) return (Node)null;
+fn Resulter Parser.parseSql(Parser* this) {
+    Token* current = this.getCurrent();
+    if (!current || !current.matches("sql", TokenType.KEYWORD)) {
+        return makeFailureResult("expected keyword 'sql'", current ? current.position : (PositionVector){});
+    }
     this.next();
 
-    if (!this.getCurrent() || !this.getCurrent().matches("{", TokenType.DELIMITER)) return (Node)null;
+    current = this.getCurrent();
+    if (!current || !current.matches("{", TokenType.DELIMITER)) {
+        return makeFailureResult("expected '{' after 'sql'", current ? current.position : (PositionVector){});
+    }
     this.next();
 
     SQLNode* node = mem::malloc(SQLNode::size);
     node.type = NodeType.SQL_NODE;
 
-    DString ds;
-    
-    while (this.getCurrent() != null && this.getCurrent().value != "}") {
-        ds.appendf("%s ", this.getCurrent().value);
+    DString sql_buffer;
+
+    while (true) {
+        current = this.getCurrent();
+        if (current == null) return makeFailureResult("unterminated sql block", (PositionVector){});
+        if (current.value == "}") break;
+
+        sql_buffer.appendf("%s ", current.value);
         this.next();
     }
 
-    if (this.getCurrent() != null) this.next();
+    this.next();
 
-    node.sql = ds.copy_str(mem);
+    node.sql = sql_buffer.copy_str(mem);
 
-    return (Node)node;
+    return makeSuccessResult((Node)node);
 }

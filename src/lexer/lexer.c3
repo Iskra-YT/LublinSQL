@@ -7,22 +7,22 @@ alias Tokens = List{Token};
 
 const String[] KEYWORDS = { "sql" };
 
-fn Position step(Position p, char c) {
-    p.index++;
-    if (c == '\n') {
-        p.column = 0;
-        p.line++;
+fn Position step(Position pos, char ch) {
+    pos.index++;
+    if (ch == '\n') {
+        pos.column = 0;
+        pos.line++;
     } else {
-        p.column++;
+        pos.column++;
     }
-    return p;
+    return pos;
 }
 
-fn Position skip(Position p, String input, int from, int to) {
+fn Position skip(Position pos, String input, int from, int to) {
     for (int k = from; k < to; k++) {
-        p = step(p, input[k]);
+        pos = step(pos, input[k]);
     }
-    return p;
+    return pos;
 }
 
 fn Tokens lex(String input) {
@@ -40,15 +40,15 @@ fn Tokens lex(String input) {
     while (i < len) {
         int from = i;
         Position start = step(pos, input[i]);
-        char c = input[i];
+        char ch = input[i];
 
-        if (c == '\n' || ascii::is_blank(c)) {
+        if (ch == '\n' || ascii::is_blank(ch)) {
             pos = start;
             i++;
             continue;
         }
 
-        if (c == '/' && i + 1 < len && input[i + 1] == '/') {
+        if (ch == '/' && i + 1 < len && input[i + 1] == '/') {
             while (i < len && input[i] != '\n') {
                 i++;
             }
@@ -56,28 +56,28 @@ fn Tokens lex(String input) {
             continue;
         }
 
-        if (ascii::is_digit(c) || (c == '.' && i + 1 < len && ascii::is_digit(input[i + 1]))) {
+        if (ascii::is_digit(ch) || (ch == '.' && i + 1 < len && ascii::is_digit(input[i + 1]))) {
             Token token = lexNumber(input, &i, start);
             tokens.push(token);
             pos = skip(pos, input, from, i);
             continue;
         }
 
-        if (ascii::is_alpha(c) || c == '_' || c == '@') {
+        if (ascii::is_alpha(ch) || ch == '_' || ch == '@') {
             Token token = lexIdentifier(input, &i, start);
             tokens.push(token);
             pos = skip(pos, input, from, i);
             continue;
         }
 
-        if (c == '"' || c == '\'') {
+        if (ch == '"' || ch == '\'') {
             Token token = lexString(input, &i, start);
             tokens.push(token);
             pos = skip(pos, input, from, i);
             continue;
         }
 
-        if (c == '+' || c == '-' || c == '*' || c == '/') {
+        if (ch == '+' || ch == '-' || ch == '*' || ch == '/') {
             i++;
             Position end = skip(start, input, from, i);
             Token token = makeToken(input[from : i - from], TokenType.OPERATOR, start, end);
@@ -86,7 +86,7 @@ fn Tokens lex(String input) {
             continue;
         }
 
-        if (c == '~' && i + 1 < len && input[i + 1] == '=') {
+        if (ch == '~' && i + 1 < len && input[i + 1] == '=') {
             i += 2;
             Position end = skip(start, input, from, i);
             Token token = makeToken("~=", TokenType.OPERATOR, start, end);
@@ -95,7 +95,7 @@ fn Tokens lex(String input) {
             continue;
         }
 
-        if (c == ':' || c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']' || c == ',' || c == ';') {
+        if (ch == ':' || ch == '(' || ch == ')' || ch == '{' || ch == '}' || ch == '[' || ch == ']' || ch == ',' || ch == ';') {
             i++;
             Position end = skip(start, input, from, i);
             Token token = makeToken(input[from : i - from], TokenType.DELIMITER, start, end);

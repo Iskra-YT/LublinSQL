@@ -1,5 +1,6 @@
 module lublinsql;
 
+import lublinsql::error;
 import lublinsql::lexer;
 import lublinsql::parser;
 import std::io;
@@ -18,14 +19,21 @@ fn int main(String[] args) {
 
     defer input.free(mem);
 
+    error::initErrors();
+
     lexer::Tokens tokens = lexer::lex(input);
     defer tokens.free();
 
-    Parser p = parser::make_parser(tokens);
-    Node ast = p.parse();
-    if (!ast) return 1;
+    Parser parser_state = parser::makeParser(tokens);
+    Resulter result = parser_state.parse();
+    if (result.isError()) return 1;
+    Node ast = result.value;
 
-    parser::repr_nodes(ast);
+    foreach (err : error::errors) {
+        io::printfn("Error: %s (line %d, column %d)", err.value, (int)err.position.start.line, (int)err.position.start.column);
+    }
+
+    parser::reprNodes(ast);
     io::print("\n");
 
     return 0;

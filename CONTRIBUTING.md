@@ -55,19 +55,6 @@ codebase. It applies to **all** new and modified code in every pull request.
 The official C3 conventions recommend `snake_case` for **all** identifiers:
 functions, methods, types, variables, parameters and file names alike.
 
-This project intentionally diverges from that part of the C3 standard in two
-places:
-
-| Identifier | LublinSQL **this project** | C3 default | Use C3 default? |
-|------------|----------------------------|------------|-----------------|
-| Functions / methods | `camelCase` | `snake_case` | **Never** |
-| Types (structs, enums, aliases) | `PascalCase` | `snake_case` | **Never** |
-| Variables / parameters / locals | `snake_case` | `snake_case` | Yes |
-| Struct fields | `snake_case` | `snake_case` | Yes |
-| Constants / enum members | `UPPER_SNAKE_CASE` | `UPPER_SNAKE_CASE` | Yes |
-| Modules | `snake_case` | `snake_case` | Yes |
-| Files | `snake_case` | `snake_case` | Yes |
-
 This is a conscious decision:
 
 - `camelCase` function names read naturally after the accessor prefix used in

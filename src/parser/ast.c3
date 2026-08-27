@@ -44,37 +44,37 @@ struct SQLNode {
     String sql;
 }
 
-fn void repr_nodes(Node node) {
+fn void reprNodes(Node node) {
     if (!node) return;
     NodeHeader* header = (NodeHeader*)node;
 
     switch (header.type) {
         case PROGRAM_NODE:
-            ProgramNode* pn = (ProgramNode*)node;
+            ProgramNode* program_node = (ProgramNode*)node;
             io::print("{PROGRAM: ");
-            foreach (n : pn.statements) {
-                repr_nodes(n);
+            foreach (n : program_node.statements) {
+                reprNodes(n);
             }
             io::print("};");
 
         case NUMBER_NODE:
-            NumberNode* nn = (NumberNode*)node;
-            io::printf(" (NumberNode: %f) ", nn.value);
+            NumberNode* number_node = (NumberNode*)node;
+            io::printf(" (NumberNode: %f) ", number_node.value);
 
         case IDENTIFIER_NODE:
-            IdentifierNode* in = (IdentifierNode*)node;
-            io::printf(" (IdentifierNode: %s) ", in.value);
+            IdentifierNode* identifier_node = (IdentifierNode*)node;
+            io::printf(" (IdentifierNode: %s) ", identifier_node.value);
 
         case BINARY_NODE:
-            BinaryNode* bn = (BinaryNode*)node;
+            BinaryNode* binary_node = (BinaryNode*)node;
             io::printf(" (BinaryNode: ");
-            repr_nodes(bn.left);
-            io::printf(" %s ", bn.op);
-            repr_nodes(bn.right);
+            reprNodes(binary_node.left);
+            io::printf(" %s ", binary_node.op);
+            reprNodes(binary_node.right);
             io::printf(") ");
 
         case SQL_NODE:
-            SQLNode* sn = (SQLNode*)node;
-            io::printf(" (SQLNode: %s) ", sn.sql);
+            SQLNode* sql_node = (SQLNode*)node;
+            io::printf(" (SQLNode: %s) ", sql_node.sql);
     }
 }

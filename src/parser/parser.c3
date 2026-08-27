@@ -2,6 +2,7 @@ module lublinsql::parser;
 
 import std::collections::list;
 import lublinsql::lexer;
+import lublinsql::position;
 
 struct Parser {
     Tokens tokens;
@@ -20,36 +21,37 @@ fn bool Parser.next(Parser* this) {
     return true;
 }
 
-fn Parser make_parser(Tokens tokens) {
-    Parser p = {
+fn Parser makeParser(Tokens tokens) {
+    Parser parser_state = {
         .offset = 0,
         .tokens = tokens
     };
 
-    return p; 
+    return parser_state;
 }
 
-fn int get_precedence(String op) {
+fn int getPrecedence(String op) {
     if (op == "+" || op == "-") return 1;
     if (op == "*" || op == "/") return 2;
     return 0;
 }
 
-fn Node Parser.parse_primary(Parser* this) {
+fn Resulter Parser.parsePrimary(Parser* this) {
     Token* token = this.getCurrent();
-    if (!token) return (Node)null;
+    if (!token) return makeFailureResult("unexpected end of input", (PositionVector){});
 
     if (token.type == TokenType.NUMBER) {
         NumberNode* node = mem::malloc(NumberNode::size);
         node.type = NodeType.NUMBER_NODE;
         node.value = token.value.to_double() ?? 0;
         this.next();
-        return (Node)node;
+        return makeSuccessResult((Node)node);
     }
 
     if (token.type == TokenType.DELIMITER && token.value == "(") {
         this.next();
-        Node expr = this.parse_expression();
+        Resulter expr = this.parseExpression();
+        if (expr.isError()) return expr;
         if (this.getCurrent() && this.getCurrent().value == ")") {
             this.next();
         }
@@ -61,79 +63,80 @@ fn Node Parser.parse_primary(Parser* this) {
         node.type = NodeType.IDENTIFIER_NODE;
         node.value = token.value;
         this.next();
-        return (Node)node;
+        return makeSuccessResult((Node)node);
     }
 
-    return (Node)null;
+    return makeFailureResult(string::format(mem, "unexpected token '%s'", token.value), token.position);
 }
 
-fn Node Parser.parse_binary(Parser* this, int min_prec) {
-    Node left = this.parse_primary();
-    if (!left) return (Node)null;
+fn Resulter Parser.parseBinary(Parser* this, int min_prec) {
+    Resulter left_result = this.parsePrimary();
+    if (left_result.isError()) return left_result;
+    Node left = left_result.value;
 
     while (true) {
         Token* token = this.getCurrent();
         if (!token || token.type != TokenType.OPERATOR) break;
 
-        int prec = get_precedence(token.value);
+        int prec = getPrecedence(token.value);
         if (prec < min_prec) break;
 
         String op = token.value;
         this.next();
 
-        Node right = this.parse_binary(prec + 1);
-        if (!right) break;
+        Resulter right_result = this.parseBinary(prec + 1);
+        if (right_result.isError()) break;
 
         BinaryNode* node = mem::malloc(BinaryNode::size);
         node.type = NodeType.BINARY_NODE;
         node.left = left;
         node.op = op;
-        node.right = right;
+        node.right = right_result.value;
         left = (Node)node;
     }
 
-    return left;
+    return makeSuccessResult(left);
 }
 
-fn Node Parser.parse_expression(Parser* this) {
-    return this.parse_binary(0);
+fn Resulter Parser.parseExpression(Parser* this) {
+    return this.parseBinary(0);
 }
 
-fn Node Parser.parse_statement(Parser* this) {
+fn Resulter Parser.parseStatement(Parser* this) {
     Token* current = this.getCurrent();
     if (current && current.matches("sql", TokenType.KEYWORD)) {
-        Node sql = this.parse_sql();
-        
+        Resulter sql = this.parseSql();
+        if (sql.isError()) return sql;
+
         if (this.getCurrent() && this.getCurrent().matches(";", TokenType.DELIMITER)) this.next();
         return sql;
     }
 
-    Node expr = this.parse_expression();
-    if (!expr) return (Node)null;
+    Resulter expr = this.parseExpression();
+    if (expr.isError()) return expr;
 
-    this.next();
     if (this.getCurrent() && this.getCurrent().matches(";", TokenType.DELIMITER)) this.next();
 
     return expr;
 }
 
-fn Node Parser.parse(Parser* this) {
+fn Resulter Parser.parse(Parser* this) {
     List{Node} nodes;
     nodes.init(mem);
 
     while (this.getCurrent()) {
-        Node statement = this.parse_statement();
-        if (!statement) {
+        Resulter statement = this.parseStatement();
+        if (statement.isError()) {
             this.next();
             continue;
         }
 
-        nodes.push(statement);
+        nodes.push(statement.value);
     }
 
-    ProgramNode* programNode = mem::malloc(ProgramNode::size);
-    programNode.statements = nodes;
-    programNode.type = NodeType.PROGRAM_NODE;
+    ProgramNode* program_node = mem::malloc(ProgramNode::size);
+    program_node.statements = nodes;
+    program_node.type = NodeType.PROGRAM_NODE;
 
-    return (Node)programNode;
+    return makeSuccessResult((Node)program_node);
 }
