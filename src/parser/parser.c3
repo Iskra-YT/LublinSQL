@@ -104,12 +104,18 @@ fn Resulter Parser.parseExpression(Parser* this) {
 
 fn Resulter Parser.parseStatement(Parser* this) {
     Token* current = this.getCurrent();
-    if (current && current.matches("sql", TokenType.KEYWORD)) {
+    if (current.matches("sql", TokenType.KEYWORD)) {
         Resulter sql = this.parseSql();
         if (sql.isError()) return sql;
 
         if (this.getCurrent() && this.getCurrent().matches(";", TokenType.DELIMITER)) this.next();
         return sql;
+    } else if (current.matches("type", TokenType.KEYWORD)) {
+        Resulter type = this.parseType();
+        if (type.isError()) return type;
+
+        if (this.getCurrent() && this.getCurrent().matches(";", TokenType.DELIMITER)) this.next();
+        return type;
     }
 
     Resulter expr = this.parseExpression();

@@ -30,7 +30,7 @@ fn int main(String[] args) {
     Node ast = result.value;
 
     foreach (err : error::errors) {
-        io::printfn("Error: %s (line %d, column %d)", err.value, (int)err.position.start.line, (int)err.position.start.column);
+        io::printfn("ERROR (%d:%d): %s", (int)err.position.start.line, (int)err.position.start.column, err.value);
     }
 
     parser::reprNodes(ast);

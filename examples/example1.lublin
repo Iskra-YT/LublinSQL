@@ -2,8 +2,3 @@ type Users {
     name: String 
     email: String
 }
-
-@noinit
-table users: Users
-
-print(users where name ~= "*Ania*")

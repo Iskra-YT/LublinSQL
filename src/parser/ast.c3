@@ -8,7 +8,9 @@ enum NodeType : {
     NUMBER_NODE,
     BINARY_NODE,
     SQL_NODE,
-    IDENTIFIER_NODE
+    IDENTIFIER_NODE,
+    TYPE_NODE,
+    TYPE_ELEMENT_NODE
 }
 
 typedef Node = void*;
@@ -44,6 +46,18 @@ struct SQLNode {
     String sql;
 }
 
+struct TypeElementNode {
+    NodeType type;
+    Node name;
+    Node element_type;
+}
+
+struct TypeNode {
+    NodeType type;
+    Node name;
+    List{Node} elements;
+}
+
 fn void reprNodes(Node node) {
     if (!node) return;
     NodeHeader* header = (NodeHeader*)node;
@@ -76,5 +90,24 @@ fn void reprNodes(Node node) {
         case SQL_NODE:
             SQLNode* sql_node = (SQLNode*)node;
             io::printf(" (SQLNode: %s) ", sql_node.sql);
+
+        case TYPE_NODE:
+            TypeNode* type_node = (TypeNode*)node;
+            io::printf(" (TypeNode: ");
+            reprNodes(type_node.name);
+            foreach (n : type_node.elements) {
+                reprNodes(n);
+            }
+            io::printf(" ) ");
+
+        case TYPE_ELEMENT_NODE:
+            TypeElementNode* type_element_node = (TypeElementNode*)node;
+            io::printf(" (TypeElementNode: ");
+            reprNodes(type_element_node.name);
+            reprNodes(type_element_node.element_type);
+            io::printf(" ) ");
+
+        default:
+            io::printf(" (UnknownNode)");
     }
 }

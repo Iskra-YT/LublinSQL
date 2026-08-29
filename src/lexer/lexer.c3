@@ -5,7 +5,7 @@ import lublinsql::position;
 
 alias Tokens = List{Token};
 
-const String[] KEYWORDS = { "sql" };
+const String[] KEYWORDS = { "sql", "type" };
 
 fn Position step(Position pos, char ch) {
     pos.index++;

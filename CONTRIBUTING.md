@@ -162,7 +162,7 @@ what we are **not** following.
 - Types are `PascalCase`: `Position`, `PositionVector`, `Token`, `Parser`,
   `ProgramNode`, `NumberNode`.
 - Every struct that participates in a tagged dispatch carries the dispatch
-  tag as its **first** field, named `type` (`NodeType type;`).
+  tag as its **first** field, named `type` (e.g. `NodeType type;`).
 - Representation methods are named `repr` and return a `String`. Accessors
   for possibly-missing values return a pointer `Token*`, never a copied
   struct.
