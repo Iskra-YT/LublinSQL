@@ -6,11 +6,14 @@ import std::io;
 enum NodeType : {
     PROGRAM_NODE,
     NUMBER_NODE,
+    STRING_LITERAL_NODE,
+    FUNCTION_CALL_NODE,
     BINARY_NODE,
     SQL_NODE,
     IDENTIFIER_NODE,
     TYPE_NODE,
-    TYPE_ELEMENT_NODE
+    TYPE_ELEMENT_NODE,
+    TABLE_NODE,
 }
 
 typedef Node = void*;
@@ -27,6 +30,17 @@ struct ProgramNode {
 struct NumberNode {
     NodeType type;
     double value;
+}
+
+struct StringLiteralNode {
+    NodeType type;
+    String value;
+}
+
+struct FunctionCallNode {
+    NodeType type;
+    Node callee;
+    List{Node} args;
 }
 
 struct IdentifierNode {
@@ -58,6 +72,12 @@ struct TypeNode {
     List{Node} elements;
 }
 
+struct TableNode {
+    NodeType type;
+    Node name;
+    Node table_type;
+}
+
 fn void reprNodes(Node node) {
     if (!node) return;
     NodeHeader* header = (NodeHeader*)node;
@@ -74,6 +94,20 @@ fn void reprNodes(Node node) {
         case NUMBER_NODE:
             NumberNode* number_node = (NumberNode*)node;
             io::printf(" (NumberNode: %f) ", number_node.value);
+
+        case STRING_LITERAL_NODE:
+            StringLiteralNode* string_literal_node = (StringLiteralNode*)node;
+            io::printf(" (StringLiteralNode: %s) ", string_literal_node.value);
+
+        case FUNCTION_CALL_NODE:
+            FunctionCallNode* function_call_node = (FunctionCallNode*)node;
+            io::printf(" (FunctionCallNode: ");
+            reprNodes(function_call_node.callee);
+            io::printf("(");
+            foreach (n : function_call_node.args) {
+                reprNodes(n);
+            }
+            io::printf(")) ");
 
         case IDENTIFIER_NODE:
             IdentifierNode* identifier_node = (IdentifierNode*)node;
@@ -105,6 +139,14 @@ fn void reprNodes(Node node) {
             io::printf(" (TypeElementNode: ");
             reprNodes(type_element_node.name);
             reprNodes(type_element_node.element_type);
+            io::printf(" ) ");
+
+        case TABLE_NODE:
+            TableNode* table_node = (TableNode*)node;
+            io::printf(" (TableNode: ");
+            reprNodes(table_node.name);
+            io::printf(" : ");
+            reprNodes(table_node.table_type);
             io::printf(" ) ");
 
         default:

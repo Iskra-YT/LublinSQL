@@ -101,3 +101,38 @@ fn Resulter Parser.parseTypeElement(Parser* this) {
 
     return makeSuccessResult((Node)element_node);
 }
+
+fn Resulter Parser.parseTable(Parser* this) {
+    if (!this.getCurrent().matches("table", TokenType.KEYWORD)) {
+        return makeFailureResult("expected 'table' keyword", this.getCurrent().position);
+    }
+
+    TableNode* table_node = mem::malloc(TableNode::size);
+    table_node.type = NodeType.TABLE_NODE;
+
+    this.next();
+
+    if (this.getCurrent().type != TokenType.IDENTIFIER) {
+        return makeFailureResult("expected identifier", this.getCurrent().position);
+    }
+
+    Resulter name = this.parsePrimary();
+    if (name.isError()) return name;
+    table_node.name = name.value;
+
+    if (!this.getCurrent().matches(":", TokenType.DELIMITER)) {
+        return makeFailureResult("expected ':'", this.getCurrent().position);
+    }
+
+    this.next();
+
+    if (this.getCurrent().type != TokenType.IDENTIFIER) {
+        return makeFailureResult("expected identifier", this.getCurrent().position);
+    }
+
+    Resulter type = this.parsePrimary();
+    if (type.isError()) return type;
+    table_node.table_type = type.value;
+
+    return makeSuccessResult((Node)table_node);
+}

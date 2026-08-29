@@ -1,4 +1,8 @@
-type Users {
+type User {
     name: String 
     email: String
 }
+
+table users: User
+
+print(users)

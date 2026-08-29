@@ -58,11 +58,26 @@ fn Resulter Parser.parsePrimary(Parser* this) {
         return expr;
     }
 
+    if (token.type == TokenType.STRING) {
+        StringLiteralNode* node = mem::malloc(StringLiteralNode::size);
+        node.type = NodeType.STRING_LITERAL_NODE;
+        node.value = token.value[1 : token.value.len - 2];
+        this.next();
+        return makeSuccessResult((Node)node);
+    }
+
     if (token.type == TokenType.IDENTIFIER) {
         IdentifierNode* node = mem::malloc(IdentifierNode::size);
         node.type = NodeType.IDENTIFIER_NODE;
         node.value = token.value;
         this.next();
+
+        Token* next = this.getCurrent();
+        if (next && next.matches("(", TokenType.DELIMITER)) {
+            this.next();
+            return this.parseFunctionCall((Node)node);
+        }
+
         return makeSuccessResult((Node)node);
     }
 
@@ -102,6 +117,33 @@ fn Resulter Parser.parseExpression(Parser* this) {
     return this.parseBinary(0);
 }
 
+fn Resulter Parser.parseFunctionCall(Parser* this, Node callee) {
+    FunctionCallNode* node = mem::malloc(FunctionCallNode::size);
+    node.type = NodeType.FUNCTION_CALL_NODE;
+    node.callee = callee;
+    node.args.init(mem);
+
+    while (this.getCurrent() && !this.getCurrent().matches(")", TokenType.DELIMITER)) {
+        Resulter argument = this.parseExpression();
+        if (argument.isError()) return argument;
+        node.args.push(argument.value);
+
+        Token* current = this.getCurrent();
+        if (current && current.matches(",", TokenType.DELIMITER)) {
+            this.next();
+            if (this.getCurrent() && this.getCurrent().matches(")", TokenType.DELIMITER)) break;
+        }
+    }
+
+    Token* current = this.getCurrent();
+    if (!current || !current.matches(")", TokenType.DELIMITER)) {
+        return makeFailureResult("expected ')' after function call arguments", current ? current.position : (PositionVector){});
+    }
+
+    this.next();
+    return makeSuccessResult((Node)node);
+}
+
 fn Resulter Parser.parseStatement(Parser* this) {
     Token* current = this.getCurrent();
     if (current.matches("sql", TokenType.KEYWORD)) {
@@ -116,6 +158,12 @@ fn Resulter Parser.parseStatement(Parser* this) {
 
         if (this.getCurrent() && this.getCurrent().matches(";", TokenType.DELIMITER)) this.next();
         return type;
+    } else if (current.matches("table", TokenType.KEYWORD)) {
+        Resulter table = this.parseTable();
+        if (table.isError()) return table;
+
+        if (this.getCurrent() && this.getCurrent().matches(";", TokenType.DELIMITER)) this.next();
+        return table;
     }
 
     Resulter expr = this.parseExpression();
