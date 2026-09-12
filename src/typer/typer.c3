@@ -195,7 +195,7 @@ fn bool checkTable(TableNode* table_node, Scope* scope) {
         ok = false;
     }
 
-    scope.symbols.set(name.value, *table_type);
+    scope.symbols.set(name.value, makeType(string::format(mem, "%s[]", table_type.name), TypeKind.ARRAY));
 
     return ok;
 }

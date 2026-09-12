@@ -1,6 +1,7 @@
 module lublinsql;
 
 import lublinsql::error;
+import lublinsql::ir;
 import lublinsql::lexer;
 import lublinsql::parser;
 import lublinsql::typer;
@@ -39,7 +40,11 @@ fn int main(String[] args) {
 
     if (error::errors.size > 0) return 1;
 
-    parser::reprNodes(ast);
+    IRProgram ir_program;
+    bool ir_ok = ir::lowerProgram((ProgramNode*)ast, &main_scope, &ir_program);
+    if (!ir_ok) return 1;
+
+    ir::reprProgram(&ir_program);
     io::print("\n");
 
     return 0;
