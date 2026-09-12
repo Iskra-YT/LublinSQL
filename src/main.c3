@@ -3,6 +3,7 @@ module lublinsql;
 import lublinsql::error;
 import lublinsql::lexer;
 import lublinsql::parser;
+import lublinsql::typer;
 import std::io;
 
 fn int main(String[] args) {
@@ -29,9 +30,14 @@ fn int main(String[] args) {
     if (result.isError()) return 1;
     Node ast = result.value;
 
+    Scope main_scope = typer::@buildMainScope();
+    bool check_ok = typer::typeCheck(ast, &main_scope);
+
     foreach (err : error::errors) {
         io::printfn("ERROR (%d:%d): %s", (int)err.position.start.line, (int)err.position.start.column, err.value);
     }
+
+    if (error::errors.size > 0) return 1;
 
     parser::reprNodes(ast);
     io::print("\n");

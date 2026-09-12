@@ -5,4 +5,4 @@ type User {
 
 table users: User
 
-print(users)
+print(users, 2)
