@@ -16,11 +16,13 @@ Table of supported SQL dialects:
 
 | Dialect | Status | Notes |
 |---------|--------|-------|
-| MySQL | ❎ | Not yet implemented |
+| MySQL | ✅ | Basic support: `CREATE TABLE` (String/Int/Double/Bool), `SELECT` via `print()`, `sql { }` passthrough. `--backend mysql` |
 | PostgreSQL | ❎ | Not yet implemented |
 | SQLite | ❎ | Not yet implemented |
 | Oracle | ❎ | Not yet implemented |
 | MSSQL | ❎ | Not yet implemented |
+
+The backend is selected with the `--backend <name>` (or `-b <name>`) flag, e.g. `lublinrc --backend mysql input.lublin`. Defaults to `mysql`.
 
 ## Core idea
 
